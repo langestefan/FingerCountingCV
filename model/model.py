@@ -2,21 +2,25 @@ import torch.nn as nn
 import torch.nn.functional as F
 from base import BaseModel
 
+import torchvision
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-class MnistModel(BaseModel):
-    def __init__(self, num_classes=10):
+class FingerDetector(BaseModel):
+    def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, num_classes)
+
+        # import pretrained faster rcnn model
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+        # self.model = torchvision.models.detection.fcos_resnet50_fpn(pretrained=True)
+
+        # replace the classifier for 5 fingers + background = 6 classes
+        self.num_classes = 6 
+
+        # get number of input features for the classifier
+        self.in_features = self.model.roi_heads.box_predictor.cls_score.in_features
+
+        # replace the pre-trained head with a new one
+        self.model.roi_heads.box_predictor = FastRCNNPredictor(self.in_features, self.num_classes) 
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
+        return self.model(x)

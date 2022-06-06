@@ -3,14 +3,14 @@
     "n_gpu": 1,
 
     "arch": {
-        "type": "MnistModel",
+        "type": "FingerDetector",
         "args": {}
     },
     "data_loader": {
-        "type": "MnistDataLoader",
+        "type": "FingerCountingDataLoader",
         "args":{
-            "data_dir": "data/",
-            "batch_size": 128,
+            "data_dir": "data/annotated",
+            "batch_size": 64,
             "shuffle": true,
             "validation_split": 0.1,
             "num_workers": 2

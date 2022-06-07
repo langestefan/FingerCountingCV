@@ -43,6 +43,10 @@ def prepare_device(n_gpu_use):
     list_ids = list(range(n_gpu_use))
     return device, list_ids
 
+# pytorch collate_fn for detection
+def collate_fn(batch):
+    return tuple(zip(*batch))
+
 class MetricTracker:
     def __init__(self, *keys, writer=None):
         self.writer = writer

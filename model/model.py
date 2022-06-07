@@ -22,5 +22,5 @@ class FingerDetector(BaseModel):
         # replace the pre-trained head with a new one
         self.model.roi_heads.box_predictor = FastRCNNPredictor(self.in_features, self.num_classes) 
 
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, images, targets):
+        return self.model(images, targets)

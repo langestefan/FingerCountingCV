@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torchvision.utils import make_grid
 from base import BaseTrainer
-from utils import inf_loop, MetricTracker
+from utils import inf_loop, MetricTracker, collate_fn
 
 
 class Trainer(BaseTrainer):
@@ -39,12 +39,29 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         self.train_metrics.reset()
-        for batch_idx, (data, target) in enumerate(self.data_loader):
-            data, target = data.to(self.device), target.to(self.device)
+        for batch_idx, (data, targets) in enumerate(self.data_loader):
+            # data, target = data.to(self.device), target.to(self.device)
 
-            self.optimizer.zero_grad()
-            output = self.model(data)
-            loss = self.criterion(output, target)
+            # self.optimizer.zero_grad()
+            # output = self.model(data, target)
+            # loss = self.criterion(output, target)
+
+            # specific to faster RCNN
+            images = list(image.to(self.device) for image in data)
+
+            targets = [{k: v.to(self.device)
+                        for k, v in t.items()} for t in targets]
+
+            output = self.model(images, targets)
+            # print(output.values())
+
+            loss = sum(l for l in output.values())
+            # print("Total loss: ", loss)
+            
+            # for deeplearning template
+            output = loss
+            target = targets
+
             loss.backward()
             self.optimizer.step()
 
@@ -58,7 +75,7 @@ class Trainer(BaseTrainer):
                     epoch,
                     self._progress(batch_idx),
                     loss.item()))
-                self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                self.writer.add_image('input', make_grid(data[0].cpu(), nrow=8, normalize=True))
 
             if batch_idx == self.len_epoch:
                 break
@@ -82,17 +99,27 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for batch_idx, (data, target) in enumerate(self.valid_data_loader):
-                data, target = data.to(self.device), target.to(self.device)
+            for batch_idx, (data, targets) in enumerate(self.valid_data_loader):
+                # specific to faster RCNN
+                images = list(image.to(self.device) for image in data)
 
-                output = self.model(data)
-                loss = self.criterion(output, target)
+                targets = [{k: v.to(self.device)
+                            for k, v in t.items()} for t in targets]
+
+                # will return dict with boxes, labels, scores
+                output = self.model(images, targets)
+                # print(output)
+
+                loss = 0 # for now we don't use loss in evaluation 
+
+                output = loss
+                target = targets
 
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
-                self.valid_metrics.update('loss', loss.item())
-                for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(output, target))
-                self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                # self.valid_metrics.update('loss', loss.item())
+                # for met in self.metric_ftns:
+                #     self.valid_metrics.update(met.__name__, met(output, target))
+                # self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
 
         # add histogram of model parameters to the tensorboard
         for name, p in self.model.named_parameters():

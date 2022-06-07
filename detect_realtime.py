@@ -10,10 +10,12 @@ import torch
 import time
 import cv2
 
+from model.model import FingerDetector
+
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-m", "--model", type=str, default="frcnn-resnet",
-	choices=["frcnn-resnet", "frcnn-mobilenet", "retinanet"],
+	choices=["frcnn-resnet", "frcnn-mobilenet", "retinanet", "frcnn-custom"],
 	help="name of the object detection model")
 ap.add_argument("-l", "--labels", type=str, default="coco_classes.pickle",
 	help="path to file containing list of categories in COCO dataset")
@@ -25,20 +27,44 @@ args = vars(ap.parse_args())
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # load the list of categories in the COCO dataset and then generate a set of bounding box colors for each class
-CLASSES = pickle.loads(open(args["labels"], "rb").read())
+# CLASSES = pickle.loads(open(args["labels"], "rb").read())
+
+# classes custom txt file
+classes_list = []
+
+with open(args["labels"], "rb") as file:
+    lines = file.readlines()
+    classes_list = [line.rstrip() for line in lines]
+
+CLASSES = classes_list
+
 COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
+
+# load custom model
+model = FingerDetector()
+checkpoint = torch.load('saved/models/FingerDetectorFRCNN/0606_222053/model_best.pth')
+state_dict = checkpoint['state_dict']
+model.load_state_dict(state_dict)
+print("type of model: ", type(model))
+frcnn_custom_model = model.to(DEVICE)
 
 # initialize a dictionary containing model name and its corresponding 
 # torchvision function call
 MODELS = {
 	"frcnn-resnet": detection.fasterrcnn_resnet50_fpn,
 	"frcnn-mobilenet": detection.fasterrcnn_mobilenet_v3_large_320_fpn,
-	"retinanet": detection.retinanet_resnet50_fpn
+	"retinanet": detection.retinanet_resnet50_fpn,
+	"frcnn-custom": frcnn_custom_model
 }
+
+print("selected model: ", args["model"])
 
 # load the model and set it to evaluation mode
 model = MODELS[args["model"]](pretrained=True, progress=True,
 	num_classes=len(CLASSES), pretrained_backbone=True).to(DEVICE)
+# model = MODELS[args["model"]]
+print("model: ", model)
+
 model.eval()
 
 # initialize the video stream, allow the camera sensor to warmup,
@@ -54,7 +80,7 @@ while True:
 	# grab the frame from the threaded video stream and resize it
 	# to have a maximum width of 400 pixels
 	frame = vs.read()
-	frame = imutils.resize(frame, width=2160)
+	frame = imutils.resize(frame, width=400)
 	orig = frame.copy()
 
 	# convert the frame from BGR to RGB channel ordering and change
@@ -71,7 +97,7 @@ while True:
 	# send the input to the device and pass the it through the
 	# network to get the detections and predictions
 	frame = frame.to(DEVICE)
-	detections = model(frame)[0]
+	detections = model(frame, targets=None)[0]
 
 	# loop over the detections
 	for i in range(0, len(detections["boxes"])):
@@ -87,6 +113,7 @@ while True:
 			idx = int(detections["labels"][i])
 			box = detections["boxes"][i].detach().cpu().numpy()
 			(startX, startY, endX, endY) = box.astype("int")
+			print(detections['labels'][i])
 
 			# draw the bounding box and label on the frame
 			label = "{}: {:.2f}%".format(CLASSES[idx], confidence * 100)
@@ -117,3 +144,4 @@ cv2.destroyAllWindows()
 vs.stop()                
 
 # python detect_realtime.py --model frcnn-mobilenet --labels coco_classes.pickle
+# python detect_realtime.py --model frcnn-custom --labels digits.txt

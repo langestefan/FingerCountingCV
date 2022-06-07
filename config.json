@@ -1,5 +1,5 @@
 {
-    "name": "Mnist_LeNet",
+    "name": "FingerDetectorFRCNN",
     "n_gpu": 1,
 
     "arch": {
@@ -10,23 +10,23 @@
         "type": "FingerCountingDataLoader",
         "args":{
             "data_dir": "data/annotated",
-            "batch_size": 64,
+            "batch_size": 4,
             "shuffle": true,
             "validation_split": 0.1,
-            "num_workers": 2
+            "num_workers": 0
         }
     },
     "optimizer": {
         "type": "Adam",
         "args":{
-            "lr": 0.001,
-            "weight_decay": 0,
+            "lr": 1e-6,
+            "weight_decay": 1e-8,
             "amsgrad": true
         }
     },
-    "loss": "nll_loss",
+    "loss": "pass_loss",
     "metrics": [
-        "accuracy", "top_k_acc"
+        
     ],
     "lr_scheduler": {
         "type": "StepLR",
@@ -45,6 +45,6 @@
         "monitor": "min val_loss",
         "early_stop": 10,
 
-        "tensorboard": true
+        "tensorboard": false
     }
 }

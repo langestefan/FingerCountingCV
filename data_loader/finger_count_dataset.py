@@ -150,6 +150,8 @@ class FingerCountDataset(data.Dataset):
         labels = torch.as_tensor(labels, dtype=torch.int64)
         image_id = torch.tensor([index])
         area = torch.as_tensor(area, dtype=torch.int64)
+
+        assert area >= 0
         
         # suppose all instances are not crowd
         iscrowd = torch.as_tensor(iscrowd, dtype=torch.int8)
@@ -162,10 +164,15 @@ class FingerCountDataset(data.Dataset):
         target["area"] = area
         target["iscrowd"] = iscrowd
 
+        # print("before transform: min:{0} max:{1}".format(np.min(img), np.max(img)))
+
+        # normalize range 0-1
+        img = np.array(img, dtype=np.float32) / 255.0
+
         if self.transform is not None:
             img = self.transform(img)
 
-        # img = transforms.ToTensor(img.ToTensor())
+        # print("after transform: ", torch.max(img))
 
         # return x, y
         return img, target

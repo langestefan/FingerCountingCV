@@ -36,6 +36,10 @@ class FingerCountingDataLoader(BaseDataLoader):
     def __init__(self, data_dir, batch_size, shuffle=True, validation_split=0.0, num_workers=1, training=True):
         trsfm =  T.Compose([
             T.ToTensor(),
+            # T.Normalize(
+            #     mean=[0.485, 0.456, 0.406],
+            #     std=[0.229, 0.224, 0.225],
+            # ),            
         ])
 
         self.data_dir = data_dir

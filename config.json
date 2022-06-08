@@ -17,11 +17,10 @@
         }
     },
     "optimizer": {
-        "type": "Adam",
+        "type": "SGD",
         "args":{
             "lr": 1e-7,
-            "weight_decay": 0,
-            "amsgrad": false
+            "momentum": 0.9
         }
     },
     "loss": "pass_loss",

@@ -83,7 +83,7 @@ def main(config):
                 print(box, label, score)
 
                 # draw bounding box on image and store it
-                file_name = os.path.join(save_dir, '{}.png'.format(idx + i*test_batch_size))
+                file_name = os.path.join(save_dir, '{}'.format(idx + i*test_batch_size))
                 print(file_name)
                 save_with_bounding_boxes(data[idx], box, score, label, save_dir=file_name)
 
@@ -97,6 +97,7 @@ def main(config):
 
 
 if __name__ == '__main__':
+    # python test.py -r saved/models/FingerDetectorFRCNN/best/model_best.pth
     args = argparse.ArgumentParser(description='PyTorch Template')
     args.add_argument('-c', '--config', default=None, type=str,
                       help='config file path (default: None)')

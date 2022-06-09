@@ -42,7 +42,7 @@ COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 
 # load custom model
 model = FingerDetector()
-checkpoint = torch.load('saved/models/FingerDetectorFRCNN/0606_222053/model_best.pth')
+checkpoint = torch.load('saved/models/FingerDetectorFRCNN/best/model_best.pth')
 state_dict = checkpoint['state_dict']
 model.load_state_dict(state_dict)
 print("type of model: ", type(model))
@@ -60,9 +60,9 @@ MODELS = {
 print("selected model: ", args["model"])
 
 # load the model and set it to evaluation mode
-model = MODELS[args["model"]](pretrained=True, progress=True,
-	num_classes=len(CLASSES), pretrained_backbone=True).to(DEVICE)
-# model = MODELS[args["model"]]
+# model = MODELS[args["model"]](pretrained=True, progress=True,
+# 	num_classes=len(CLASSES), pretrained_backbone=True).to(DEVICE)
+model = MODELS[args["model"]]
 print("model: ", model)
 
 model.eval()
@@ -80,7 +80,7 @@ while True:
 	# grab the frame from the threaded video stream and resize it
 	# to have a maximum width of 400 pixels
 	frame = vs.read()
-	frame = imutils.resize(frame, width=400)
+	frame = imutils.resize(frame, width=612, height=408)
 	orig = frame.copy()
 
 	# convert the frame from BGR to RGB channel ordering and change
@@ -113,10 +113,10 @@ while True:
 			idx = int(detections["labels"][i])
 			box = detections["boxes"][i].detach().cpu().numpy()
 			(startX, startY, endX, endY) = box.astype("int")
-			print(detections['labels'][i])
+			print(detections['labels'])
 
 			# draw the bounding box and label on the frame
-			label = "{}: {:.2f}%".format(CLASSES[idx], confidence * 100)
+			label = "{}: {:.2f}%".format(CLASSES[idx].decode("utf-8"), confidence * 100)
 			cv2.rectangle(orig, (startX, startY), (endX, endY),
 				COLORS[idx], 2)
 			y = startY - 15 if startY - 15 > 15 else startY + 15

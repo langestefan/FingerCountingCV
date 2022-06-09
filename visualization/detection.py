@@ -120,6 +120,6 @@ def save_with_bounding_boxes(image, boxes, scores,
                                 1, display_str_list=[str(digit)], use_normalized_coordinates=False)
     
     # save image
-    image_path = os.path.join(save_dir + '_.png')
+    image_path = os.path.join(save_dir + '.png')
     
     image.save(image_path)

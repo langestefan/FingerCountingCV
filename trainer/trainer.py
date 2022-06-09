@@ -40,33 +40,25 @@ class Trainer(BaseTrainer):
         self.model.train()
         self.train_metrics.reset()
         for batch_idx, (data, targets) in enumerate(self.data_loader):
-            # data, target = data.to(self.device), target.to(self.device)
-
-            # self.optimizer.zero_grad()
-            # output = self.model(data, target)
-            # loss = self.criterion(output, target)
-
-            # specific to faster RCNN
+            # compute model output
             images = list(image.to(self.device) for image in data)
+            targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
+            loss_dict = self.model(images, targets)
 
-            targets = [{k: v.to(self.device)
-                        for k, v in t.items()} for t in targets]
-
-            output = self.model(images, targets)
-            # print(output.values())
-
-            loss = sum(l for l in output.values())
-            # print("Total loss: ", loss)
+            # compute loss
+            losses = sum(loss for loss in loss_dict.values())
             
             # for deeplearning template
-            output = loss
+            output = losses
             target = targets
 
-            loss.backward()
+            # backpropagate
+            self.optimizer.zero_grad()
+            losses.backward()
             self.optimizer.step()
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
-            self.train_metrics.update('loss', loss.item())
+            self.train_metrics.update('loss', losses.item())
             for met in self.metric_ftns:
                 self.train_metrics.update(met.__name__, met(output, target))
 
@@ -74,7 +66,7 @@ class Trainer(BaseTrainer):
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
-                    loss.item()))
+                    losses.item()))
                 self.writer.add_image('input', make_grid(data[0].cpu(), nrow=8, normalize=True))
 
             if batch_idx == self.len_epoch:

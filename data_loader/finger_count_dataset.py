@@ -1,3 +1,4 @@
+from tkinter import W
 import torch
 import nibabel as nib
 from torch.utils import data
@@ -108,7 +109,7 @@ class FingerCountDataset(data.Dataset):
         return len(self.inputs)
 
     def __getitem__(self, index: int):    
-        # see: https://pytorch.org/vision/stable/generated/torchvision.models.detection.fasterrcnn_resnet50_fpn.html   
+        # see: https://pytorch.org/vision/main/models/generated/torchvision.models.detection.fcos_resnet50_fpn.html 
 
         ### image: a PIL Image of size (H, W) ###
         # The input to the model is expected to be a list of tensors, each of shape [C, H, W], one for each image, and should be in 0-1 range. 
@@ -116,63 +117,44 @@ class FingerCountDataset(data.Dataset):
         img = self.inputs[index]
         
         ### target: a dict containing the following fields ###
-        # boxes (FloatTensor[N, 4]): the coordinates of the N bounding boxes in [x0, y0, x1, y1] format, ranging from 0 to W and 0 to H
+        # boxes (FloatTensor[N, 4]): the coordinates of the N bounding boxes in [x1, y1, x2, y2] format, ranging from 0 to W and 0 to H
         # labels (Int64Tensor[N]): the class label for each bounding box
-        # image_id (Int64Tensor[1]): an image identifier. It should be unique between all the images in the dataset, and is used during evaluation
-        # target_area (Tensor[N]): the area of the bounding box. The area is calculated using `x1 - x0` and `y1 - y0`
-        # iscrowd (UInt8Tensor[N]): instances with iscrowd=True will be ignored during evaluation.
 
         target_info = self.targets[index] # target shape = [int(digits[class_name]), xmin, ymin, xmax, ymax]
 
         boxes = []
         labels = []
-        image_id = []
-        area = []
-        iscrowd = []
+
+        H, W, C = np.shape(np.array(img))
 
         for target in target_info:
             # get info
             label = target[0]
-            xmin = target[1]
-            ymin = target[2]
-            xmax = target[3]
-            ymax = target[4]
-            area = (xmax - xmin) * (ymax - ymin)
-            # print("area: {}".format(area))
+            x1 = target[1]
+            y1 = target[2]
+            x2 = target[3]
+            y2 = target[4]
+
+            assert 0 <= x1 < x2 <= W and 0 <= y1 < y2 <= H, 'Bounding box out of range'
 
             # write to list
-            boxes.append([xmin, ymin, xmax, ymax])
+            boxes.append([x1, y1, x2, y2])
             labels.append(label)
-            iscrowd.append(0)
 
         # convert to tensor
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         labels = torch.as_tensor(labels, dtype=torch.int64)
-        image_id = torch.tensor([index])
-        area = torch.as_tensor(area, dtype=torch.int64)
-
-        assert area >= 0
-        
-        # suppose all instances are not crowd
-        iscrowd = torch.as_tensor(iscrowd, dtype=torch.int8)
 
         # construct dictionary
         target = {}
         target["boxes"] = boxes
         target["labels"] = labels
-        target["image_id"] = image_id
-        target["area"] = area
-        target["iscrowd"] = iscrowd
-
-        # print("before transform: min:{0} max:{1}".format(np.min(img), np.max(img)))
 
         # normalize range 0-1
         img = np.array(img, dtype=np.float32) / 255.0
 
         if self.transform is not None:
             img = self.transform(img)
-
-        # print("after transform: ", torch.max(img))
 
         # return x, y
         return img, target

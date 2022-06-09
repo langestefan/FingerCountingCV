@@ -113,7 +113,7 @@ while True:
 			idx = int(detections["labels"][i])
 			box = detections["boxes"][i].detach().cpu().numpy()
 			(startX, startY, endX, endY) = box.astype("int")
-			print(detections['labels'])
+			print(detections['labels'][i])
 
 			# draw the bounding box and label on the frame
 			label = "{}: {:.2f}%".format(CLASSES[idx].decode("utf-8"), confidence * 100)

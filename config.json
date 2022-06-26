@@ -10,7 +10,7 @@
         "type": "FingerCountingDataLoader",
         "args":{
             "data_dir": "data/augmented",
-            "batch_size": 4,
+            "batch_size": 8,
             "shuffle": true,
             "validation_split": 0.1,
             "num_workers": 0
@@ -19,10 +19,11 @@
     "optimizer": {
         "type": "Adam",
         "args":{
-            "lr": 1e-7,
+            "lr": 1e-6,
             "weight_decay": 1e-8,
-            "amsgrad": true
-        }
+            "amsgrad": true            
+        },
+        "max_grad_norm" : 1.0
     },
     "loss": "pass_loss",
     "metrics": [
@@ -31,7 +32,7 @@
     "lr_scheduler": {
         "type": "StepLR",
         "args": {
-            "step_size": 5,
+            "step_size": 20,
             "gamma": 0.5
         }
     },

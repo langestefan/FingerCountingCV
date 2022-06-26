@@ -80,7 +80,7 @@ while True:
 	# grab the frame from the threaded video stream and resize it
 	# to have a maximum width of 400 pixels
 	frame = vs.read()
-	frame = imutils.resize(frame, width=612, height=408)
+	frame = imutils.resize(frame, width=1224, height=816)
 	orig = frame.copy()
 
 	# convert the frame from BGR to RGB channel ordering and change
@@ -144,4 +144,4 @@ cv2.destroyAllWindows()
 vs.stop()                
 
 # python detect_realtime.py --model frcnn-mobilenet --labels coco_classes.pickle
-# python detect_realtime.py --model frcnn-custom --labels digits.txt
+# python detect_realtime.py --model frcnn-custom --labels digits.txt -c 0.7

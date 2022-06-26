@@ -55,6 +55,7 @@ class Trainer(BaseTrainer):
             # backpropagate
             self.optimizer.zero_grad()
             losses.backward()
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config['optimizer']['max_grad_norm'])
             self.optimizer.step()
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)

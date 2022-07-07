@@ -9,7 +9,7 @@
     "data_loader": {
         "type": "FingerCountingDataLoader",
         "args":{
-            "data_dir": "data/augmented",
+            "data_dir": "data/cropped/combine",
             "batch_size": 8,
             "shuffle": true,
             "validation_split": 0.1,
@@ -19,11 +19,10 @@
     "optimizer": {
         "type": "Adam",
         "args":{
-            "lr": 1e-6,
+            "lr": 1e-4,
             "weight_decay": 1e-8,
             "amsgrad": true            
-        },
-        "max_grad_norm" : 1.0
+        }
     },
     "loss": "pass_loss",
     "metrics": [
@@ -32,19 +31,20 @@
     "lr_scheduler": {
         "type": "StepLR",
         "args": {
-            "step_size": 20,
-            "gamma": 0.5
+            "step_size": 1,
+            "gamma": 0.95
         }
     },
     "trainer": {
         "epochs": 100,
 
         "save_dir": "saved/",
-        "save_period": 1,
+        "save_period": 5,
         "verbosity": 2,
         
         "monitor": "min val_loss",
         "early_stop": 10,
+        "auto_mixed_precision": true,
 
         "tensorboard": false
     }

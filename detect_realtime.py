@@ -41,8 +41,9 @@ CLASSES = classes_list
 COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 
 # load custom model
-model = FingerDetector()
+model = FingerDetector().half()
 checkpoint = torch.load('saved/models/FingerDetectorFRCNN/best/model_best.pth')
+
 state_dict = checkpoint['state_dict']
 model.load_state_dict(state_dict)
 print("type of model: ", type(model))
@@ -80,7 +81,7 @@ while True:
 	# grab the frame from the threaded video stream and resize it
 	# to have a maximum width of 400 pixels
 	frame = vs.read()
-	frame = imutils.resize(frame, width=1224, height=816)
+	frame = imutils.resize(frame, width=612, height=408)
 	orig = frame.copy()
 
 	# convert the frame from BGR to RGB channel ordering and change
@@ -92,7 +93,7 @@ while True:
 	# range [0, 1], and convert the frame to a floating point tensor
 	frame = np.expand_dims(frame, axis=0)
 	frame = frame / 255.0
-	frame = torch.FloatTensor(frame)
+	frame = torch.HalfTensor(frame)
 
 	# send the input to the device and pass the it through the
 	# network to get the detections and predictions

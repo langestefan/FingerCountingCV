@@ -122,7 +122,7 @@ class FingerCountDataset(data.Dataset):
 
         target_info = self.targets[index] # target shape = [int(digits[class_name]), xmin, ymin, xmax, ymax]
 
-        boxes = []
+        bboxes = []
         labels = []
 
         H, W, C = np.shape(np.array(img))
@@ -130,31 +130,40 @@ class FingerCountDataset(data.Dataset):
         for target in target_info:
             # get info
             label = target[0]
-            x1 = target[1]
-            y1 = target[2]
-            x2 = target[3]
-            y2 = target[4]
+            xmin = target[1]
+            ymin = target[2]
+            xmax = target[3]
+            ymax = target[4]
 
-            assert 0 <= x1 < x2 <= W and 0 <= y1 < y2 <= H, 'Bounding box out of range'
+            assert 0 <= xmin < xmax <= W and 0 <= ymin < ymax <= H, 'Bounding box out of range'
 
             # write to list
-            boxes.append([x1, y1, x2, y2])
+            bboxes.append((int(xmin), int(ymin), int(xmax), int(ymax)))
             labels.append(label)
 
+        # convert to array
+        img = np.array(img, dtype=np.uint8)
+
+        if self.transform is not None:
+            transformed = self.transform(image=img, bboxes=bboxes, category_ids=labels)
+
+        img = transformed['image']
+        bboxes = transformed['bboxes']
+        labels = transformed['category_ids'] 
+
+        # print(type(bboxes))     
+
         # convert to tensor
-        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+        bboxes = torch.as_tensor(bboxes, dtype=torch.float32)
         labels = torch.as_tensor(labels, dtype=torch.int64)
 
         # construct dictionary
         target = {}
-        target["boxes"] = boxes
+        target["boxes"] = bboxes
         target["labels"] = labels
 
         # normalize range 0-1
-        img = np.array(img, dtype=np.float32) / 255.0
-
-        if self.transform is not None:
-            img = self.transform(img)
+        img = img / 255
 
         # return x, y
         return img, target

@@ -107,6 +107,7 @@ class BaseTrainer:
         :param save_best: if True, rename the saved checkpoint to 'model_best.pth'
         """
         arch = type(self.model).__name__
+
         state = {
             'arch': arch,
             'epoch': epoch,

@@ -3,18 +3,24 @@ import torch
 from torchvision.utils import make_grid
 from base import BaseTrainer
 from utils import inf_loop, MetricTracker, collate_fn
-
+from torch.cuda.amp import autocast, GradScaler
 
 class Trainer(BaseTrainer):
     """
     Trainer class
     """
     def __init__(self, model, criterion, metric_ftns, optimizer, config, device,
-                 data_loader, valid_data_loader=None, lr_scheduler=None, len_epoch=None):
+                 data_loader, valid_data_loader=None, lr_scheduler=None, len_epoch=None, auto_mp=False):
         super().__init__(model, criterion, metric_ftns, optimizer, config)
         self.config = config
         self.device = device
         self.data_loader = data_loader
+
+        # if we use automatic mixed-precision
+        self.auto_mp = auto_mp 
+        if self.auto_mp:
+            self.scaler = GradScaler()
+
         if len_epoch is None:
             # epoch-based training
             self.len_epoch = len(self.data_loader)
@@ -37,31 +43,39 @@ class Trainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains average loss and metric in this epoch.
         """
+
         self.model.train()
         self.train_metrics.reset()
         for batch_idx, (data, targets) in enumerate(self.data_loader):
             # compute model output
             images = list(image.to(self.device) for image in data)
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
-            loss_dict = self.model(images, targets)
 
-            # compute loss
-            losses = sum(loss for loss in loss_dict.values())
-            
+            # make distinction between mixed precision and normal training
+            self.optimizer.zero_grad()
+
+            if self.auto_mp:
+                with autocast():
+                    loss_dict = self.model(images, targets)
+                    losses = sum(loss for loss in loss_dict.values())
+                self.scaler.scale(losses).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+
+            else:
+                loss_dict = self.model(images, targets)
+                losses = sum(loss for loss in loss_dict.values())
+                
+                losses.backward()         
+                self.optimizer.step()            
+
             # for deeplearning template
             output = losses
-            target = targets
-
-            # backpropagate
-            self.optimizer.zero_grad()
-            losses.backward()
-            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config['optimizer']['max_grad_norm'])
-            self.optimizer.step()
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update('loss', losses.item())
             for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(output, target))
+                self.train_metrics.update(met.__name__, met(output, targets))
 
             if batch_idx % self.log_step == 0:
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
